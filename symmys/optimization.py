@@ -13,6 +13,16 @@ from .utils import hash_sample
 
 class PointRotations:
     """Finds rotations that leave a point cloud unchanged up to a permutation.
+
+    This method optimizes a set of unit quaternions to match the
+    distribution of transformed points to the set of unrotated
+    points. Quaternions are then clustered by their axis of rotation
+    and merged into N-fold rotation symmetries.
+
+    :param num_rotations: Number of plain rotations (and rotoinversions, if enabled) to consider
+    :param quaternion_dim: Optimizer dimension for quaternions (higher may make optimization easier at the cost of more expensive optimization steps)
+    :param include_inversions: If True, include rotoinversions as well as rotations
+    :param loss: Loss function to use; see :py:mod:`symmys.losses`
     """
     def __init__(self, num_rotations, quaternion_dim=8, include_inversions=True,
                  loss=mean_exp_rsq):
@@ -25,23 +35,36 @@ class PointRotations:
 
     @property
     def model(self):
+        """Return the tensorflow model that will perform rotations."""
         if self._model_dict is None:
             self._model_dict = self.build_model()
         return self._model_dict['model']
 
     @property
     def rotation_layer(self):
+        """Return the tensorflow.keras layer for rotations."""
         if self._model_dict is None:
             self._model_dict = self.build_model()
         return self._model_dict['rotation_layer']
 
     @property
     def rotoinversion_layer(self):
+        """Return the tensorflow.keras layer for rotoinversions."""
         if self._model_dict is None:
             self._model_dict = self.build_model()
         return self._model_dict['rotoinversion_layer']
 
     def build_model(self):
+        """Create the tensorflow model.
+
+        This method can be replaced by child classes to experiment
+        with different network architectures. The returned result
+        should be a dictionary containing at least:
+
+        - `model`: a `tensorflow.keras.models.Model` instance that replicates a given set of input points
+        - `rotation_layer`: a layer with a `quaternions` attribute to be read
+        - `rotoinversion_layer` (if inversions are enabled): a layer with a `quaternions` attribute to be read
+        """
         result = {}
 
         inp = last = keras.layers.Input(shape=(3,))
@@ -62,6 +85,23 @@ class PointRotations:
             validation_split=.3, hash_sample_N=128,
             reference_fraction=.1, optimizer='adam', batch_size=256,
             valid_symmetries=12, extra_callbacks=[]):
+        """Fit rotation quaternions and analyze the collective symmetries of a set of input points.
+
+        This method builds a rotation model, fits it to the given
+        data, and groups the found quaternions by their axis and
+        rotation angle.
+
+        :param points: Input points to analyze:: (N, 3) numpy array-like sequence
+        :param epochs: Maximum number of epochs to train
+        :param early_stopping_steps: Patience (in epochs) for early stopping criterion; training halts when the validation set loss does not improve for this many epochs
+        :param validation_split: Fraction of training data to use for calculating validation loss
+        :param hash_sample_N: Minimum number of points to use as reference data for the loss function (see :py:func:`hash_sample`)
+        :param reference_fraction: Fraction of given input data to be hashed to form the reference data
+        :param optimizer: Tensorflow/keras optimizer name or instance
+        :param batch_size: Batch size for optimization
+        :param valid_symmetries: Maximum degree of symmetry (N) that will be considered when identifying N-fold rotations
+        :param extra_callbacks: Additional tensorflow callbacks to use during optimization
+        """
         points = np.asarray(points)
         N = len(points)
 

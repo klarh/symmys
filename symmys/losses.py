@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow.keras.backend as K
 
 def mean_sqrt_rsq(pred, reference):
+    """Returns mean(sqrt(R^2)) for a set of reference points."""
     expanded = K.expand_dims(pred, -2)
 
     delta = expanded - reference[np.newaxis]
@@ -10,6 +11,7 @@ def mean_sqrt_rsq(pred, reference):
     return K.mean(result, axis=-1)
 
 def mean_exp_rsq(pred, reference, r_scale=1.):
+    """Returns mean(1 - exp(-R^2/r_scale^2)) for a set of reference points."""
     expanded = K.expand_dims(pred, -2)
 
     delta = expanded - reference[np.newaxis]

@@ -5,6 +5,10 @@ import tensorflow.keras as keras
 import tensorflow.keras.backend as K
 
 def projected_quaternion_initializer(shape, dtype=None):
+    """Initialize a set of quaternions (to be summed over the last dimension) randomly.
+
+    This method produces a uniform distribution of rotations.
+    """
     assert shape[1] == 4
     (num_rotations, _, quaternion_dim) = shape
 
@@ -34,6 +38,21 @@ def rotate(quat, vec):
     return result
 
 class QuaternionRotation(keras.layers.Layer):
+    """Perform rotations of a set of input points, parameterized by unit quaternions.
+
+    This layer takes a point cloud as input and produces rotated
+    images of all the points in the point cloud. The rotations that
+    are applied are parameterized by unit quaternions, which are
+    treated as layer weights to be optimized.
+
+    Quaternions are optimized in a higher dimension and then projected
+    down through a `sum` operation to improve the speed of the
+    optimization process.
+
+    :param num_rotations: Number of rotation quaternions to use
+    :param quaternion_dim: Pre-projection dimension of quaternion parameters
+    :param include_reverse: If True, also output points rotated by the conjugate quaternion for each learned quaternion
+    """
     def __init__(self, num_rotations, quaternion_dim=6, include_reverse=True, *args, **kwargs):
         self.num_rotations = num_rotations
         self.quaternion_dim = quaternion_dim
@@ -92,6 +111,7 @@ class QuaternionRotation(keras.layers.Layer):
         return config
 
 class QuaternionRotoinversion(QuaternionRotation):
+    """Learn rotoinversions, rather than rotations. Otherwise identical to :py:class:`QuaternionRotation`."""
     def call(self, inputs):
         return super().call(-inputs)
 
