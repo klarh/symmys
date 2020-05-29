@@ -91,6 +91,10 @@ class PointRotations:
         data, and groups the found quaternions by their axis and
         rotation angle.
 
+        After fitting, a map of symmetries will be returned: a
+        dictionary of {N-fold: [axes]} containing all the axes about
+        which each observed symmetry were found.
+
         :param points: Input points to analyze:: (N, 3) numpy array-like sequence
         :param epochs: Maximum number of epochs to train
         :param early_stopping_steps: Patience (in epochs) for early stopping criterion; training halts when the validation set loss does not improve for this many epochs
