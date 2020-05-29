@@ -24,6 +24,7 @@ class Mock(MagicMock):
 
 autodoc_mock_imports = [
     'numpy',
+    'sklearn',
     'sklearn.cluster',
     'tensorflow',
     'tensorflow.keras',
