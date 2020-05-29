@@ -26,6 +26,7 @@ setup(name='symmys',
       extras_require={},
       install_requires=[
           'numpy',
+          'scikit-learn',
           'tensorflow',
       ],
       license='MIT',
